@@ -1,17 +1,17 @@
-import osgeoutils as osgu, numpy as np
+import numpy as np
+from gith.dissever import osgeoutils as osgu
 
 
-def runMassPreserving(idsdataset, polygonvaluesdataset, rastergeo):
+def runMassPreserving(idsdataset, polygonvaluesdataset, rastergeo, tempfileid=None):
     print('|| MASS-PRESERVING AREAL WEIGHTING')
-    unique, counts = np.unique(idsdataset, return_counts=True)
+    unique, counts = np.unique(idsdataset[~np.isnan(idsdataset)], return_counts=True)
     counts = dict(zip(unique, counts))
 
     for polid in counts:
-        if polid != -9999:
-            idsdataset[idsdataset == polid] = counts[polid]
+        idsdataset[idsdataset == polid] = counts[polid]
 
     masspdataset = polygonvaluesdataset/idsdataset
 
-    tempfile = 'tempfilemp.tif'
-    osgu.writeRaster(masspdataset, rastergeo, tempfile)
-    return tempfile
+    tempfile = 'tempfilemp_' + tempfileid + '.tif'
+    if tempfileid: osgu.writeRaster(masspdataset, rastergeo, tempfile)
+    return masspdataset, rastergeo

@@ -1,5 +1,4 @@
-import osgeoutils as osgu
-import dissever
+from gith.dissever import osgeoutils as osgu, dissever
 import numpy as np
 
 
