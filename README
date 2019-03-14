@@ -1,1 +1,6 @@
-The disseveration algorithm can be executed in "rundisagg.py"
+The disseveration algorithm can be executed either through:
+1. runMultipleExperiences.py
+2. runMultipleIndicators.py
+
+If you prefer to execute pycnophylactic interpolation alone, you can do it through:
+1. runPychophylacticInterpolation.py
