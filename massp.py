@@ -1,5 +1,5 @@
 import numpy as np
-from gith.dissever import osgeoutils as osgu
+import osgeoutils as osgu
 
 
 def runMassPreserving(idsdataset, polygonvaluesdataset, rastergeo, tempfileid=None):
@@ -12,6 +12,8 @@ def runMassPreserving(idsdataset, polygonvaluesdataset, rastergeo, tempfileid=No
 
     masspdataset = polygonvaluesdataset/idsdataset
 
-    tempfile = 'tempfilemp_' + tempfileid + '.tif'
-    if tempfileid: osgu.writeRaster(masspdataset, rastergeo, tempfile)
+    if tempfileid:
+        tempfile = 'tempfilemp_' + tempfileid + '.tif'
+        osgu.writeRaster(masspdataset, rastergeo, tempfile)
+
     return masspdataset, rastergeo

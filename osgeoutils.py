@@ -9,7 +9,8 @@ def readRaster(file):
     band = raster.GetRasterBand(1)
     rastergeo = raster.GetGeoTransform()
     dataset = np.array(band.ReadAsArray())
-    dataset[dataset < -99999999] = np.NaN
+    dataset[dataset < -999999] = np.NaN
+    dataset = np.reshape(dataset, dataset.shape + (1,))
     return dataset, rastergeo
 
 
@@ -27,27 +28,41 @@ def writeRaster(dataset, rastergeo, fraster):
     outband = None
 
 
-def addAttr2Shapefile(fshape, fcsv=None, attr=None):
-    gdf = gpd.read_file(fshape)
+def addAttr2Shapefile(fshape, fcsv=None, attr=None, encoding='latin-1'):
+    prj = [l.strip() for l in open(fshape.replace('.shp', '.prj'), 'r')][0]
+    gdf = gpd.read_file(fshape, crs_wkt=prj, encoding=encoding)
     if attr == 'ID':
         print('|| Adding ID to shapefile', fshape)
         ids = list(range(1, gdf['geometry'].count() + 1))
         gdf['ID'] = ids
+
     else:
         print('|| Merging shapefile with csv by', attr)
-        df = pd.read_csv(fcsv, sep=';')
-        gdf = gdf.merge(df, on=attr)
-    gdf.to_file(driver='ESRI Shapefile', filename=fshape)
+        df = pd.read_csv(fcsv, sep=';', encoding=encoding)
+
+        gdf[attr[0]] = gdf[attr[0]].str.upper()
+        gdf[attr[1]] = gdf[attr[1]].str.upper()
+        df[attr[0]] = df[attr[0]].str.upper()
+        df[attr[1]] = df[attr[1]].str.upper()
+        #print(gdf.columns)
+        gdf = gdf.merge(df, left_on=attr, right_on=attr)
+        #print(gdf)
+
+    gdf.to_file(driver='ESRI Shapefile', filename=fshape, crs_wkt=prj)
 
 
 def removeAttrFromShapefile(fshape, attr):
-    gdf = gpd.read_file(fshape)
     print('|| Removing attribute(s)', attr, 'from shapefile')
-    gdf = gdf.drop(attr, axis=1)
-    gdf.to_file(driver='ESRI Shapefile', filename=fshape)
+    prj = [l.strip() for l in open(fshape.replace('.shp', '.prj'), 'r')][0]
+    gdf = gpd.read_file(fshape, crs_wkt=prj)
+    gdfattributes = list(gdf)
+    for att in attr:
+        if att in gdfattributes:
+            gdf = gdf.drop(att, axis=1)
+    gdf.to_file(driver='ESRI Shapefile', filename=fshape, crs_wkt=prj)
 
 
-def ogr2raster(fshape, res, attr, tempfileid=None):
+def ogr2raster(fshape, attr, template):
     print('| Converting shapefile to raster:', fshape, '-', attr)
 
     if attr == 'ID':
@@ -56,21 +71,18 @@ def ogr2raster(fshape, res, attr, tempfileid=None):
     print('|| Converting')
     source_ds = ogr.Open(fshape)
     source_layer = source_ds.GetLayer()
-    spatialRef = source_layer.GetSpatialRef()
+    # spatialRef = source_layer.GetSpatialRef()
 
-    x_min, x_max, y_min, y_max = source_layer.GetExtent()
-    cols = int((x_max - x_min) / res)
-    rows = int((y_max - y_min) / res)
+    cols = template[1]
+    rows = template[2]
 
-    tempfile = 'tempfileo2r'
-    if tempfileid: tempfile = tempfile + '_' + tempfileid
-    tempfile = tempfile + '.tif'
+    tempfile = 'tempfileo2r.tif'
     target_ds = gdal.GetDriverByName('GTiff').Create(tempfile, cols, rows, 1, gdal.GDT_Float32)
 
-    target_ds.SetGeoTransform((x_min, res, 0, y_max, 0, -res))
-    target_dsSRS = osr.SpatialReference()
-    target_dsSRS.ImportFromEPSG(4326)
-    target_ds.SetProjection(target_dsSRS.ExportToWkt())
+    target_ds.SetGeoTransform(template[0])
+    # target_dsSRS = osr.SpatialReference()
+    # target_dsSRS.ImportFromEPSG(4326)
+    # target_ds.SetProjection(target_dsSRS.ExportToWkt())
 
     band = target_ds.GetRasterBand(1)
     band.SetNoDataValue(np.NaN)
@@ -83,6 +95,6 @@ def ogr2raster(fshape, res, attr, tempfileid=None):
     target_ds = None
 
     dataset, rastergeo = readRaster(tempfile)
-    if ~tempfileid: os.remove(tempfile)
+    os.remove(tempfile)
 
     return dataset, rastergeo

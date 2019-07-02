@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import ndimage
-from gith.dissever import massp, osgeoutils as osgu, nputils as npu
+import massp, osgeoutils as osgu, nputils as npu
 
 
 def runPycno(idsdataset, polygonvaluesdataset, rastergeo, niter=100, converge=0.001, tempfileid=None):
@@ -10,12 +10,15 @@ def runPycno(idsdataset, polygonvaluesdataset, rastergeo, niter=100, converge=0.
     oldpycnodataset = pycnodataset
 
     idpolvalues = npu.polygonValuesByID(polygonvaluesdataset, idsdataset)
+    pycnomask = idsdataset
+    pycnomask[~np.isnan(pycnomask)] = 1
 
     for it in range(1, niter+1):
         print('| - Iteration', it)
 
         # Calculate the mean of the cells in the 3 by 3 neighborhood
-        pycnodataset = ndimage.generic_filter(pycnodataset, np.nanmean, size=3, mode='constant', cval=np.NaN)
+        mask = np.array([[0,1,0],[1,0,1],[0,1,0]])
+        pycnodataset = ndimage.generic_filter(pycnodataset, np.nanmean, footprint=mask, mode='constant', cval=np.NaN)
 
         # Summarizes the values within each polygon
         stats = npu.statsByID(pycnodataset, idsdataset, 'sum')
@@ -27,13 +30,27 @@ def runPycno(idsdataset, polygonvaluesdataset, rastergeo, niter=100, converge=0.
         for polid in polygonratios:
             pycnodataset[idsdataset == polid] = (pycnodataset[idsdataset == polid] * polygonratios[polid])
 
+        pycnodataset = pycnodataset * pycnomask
+
+
         # Check if the algorithm has converged
-        if((it > 1) and (np.mean(abs(pycnodataset-oldpycnodataset)) < converge)):
+        error = np.nanmean(abs(pycnodataset - oldpycnodataset))
+        rangeds = np.nanmax(oldpycnodataset) - np.nanmin(oldpycnodataset)
+        stopcrit = converge# * rangeds
+        print('Error:', error)
+
+        if ((it > 1) and (error < stopcrit)):
             break
         else:
             oldpycnodataset = pycnodataset
 
+        # if((it > 1) and (np.nanmean(abs(pycnodataset-oldpycnodataset)) < converge)):
+        #     break
+        # else:
+        #     oldpycnodataset = pycnodataset
 
-    tempfile = 'tempfilepycno_' + tempfileid + '.tif'
-    if tempfileid: osgu.writeRaster(pycnodataset, rastergeo, tempfile)
+    if tempfileid:
+        tempfile = 'tempfilepycno_' + tempfileid + '.tif'
+        osgu.writeRaster(pycnodataset, rastergeo, tempfile)
+
     return pycnodataset, rastergeo

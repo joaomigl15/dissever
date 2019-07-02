@@ -18,8 +18,141 @@ def statsByID(ds, ids, stat='sum'):
     stats = {}
     for polid in counts:
         if stat == 'sum':
-            stats[polid] = np.sum(ds[ids == polid])
+            stats[polid] = np.nansum(ds[ids == polid])
         else:
             print('Invalid statistic')
 
     return stats
+
+
+def extenddataset(X, y, ylr=np.array(None), transf=None):
+    if transf == '2.5T6':
+        auxtransf = np.random.randint(1, 7, X.shape[0])
+        newX = np.concatenate((X,
+                               np.flip(X[auxtransf == 1, :, :, :], 1),
+                               np.flip(X[auxtransf == 2, :, :, :], 2),
+                               np.flip(X[auxtransf == 3, :, :, :], (1,2)),
+                               np.rot90(X[auxtransf == 4, :, :, :], axes=(1,2)),
+                               np.transpose(X[auxtransf == 5, :, :, :], (0, 2, 1, 3)),
+                               np.rot90(X[auxtransf == 6, :, :, :], axes=(2,1))), axis=0)
+        newy = np.concatenate((y,
+                               y[auxtransf == 1],
+                               y[auxtransf == 2],
+                               y[auxtransf == 3],
+                               y[auxtransf == 4],
+                               y[auxtransf == 5],
+                               y[auxtransf == 6]))
+        if ylr.any(): newylr = np.concatenate((ylr,
+                                               ylr[auxtransf == 1],
+                                               ylr[auxtransf == 2],
+                                               ylr[auxtransf == 3],
+                                               ylr[auxtransf == 4],
+                                               ylr[auxtransf == 5],
+                                               ylr[auxtransf == 6]))
+
+        auxtransfpos = np.random.choice(X.shape[0], round(X.shape[0]/2), replace=False)
+        auxtransfcat = np.random.randint(1, 7, round(X.shape[0]/2))
+        auxtransf = np.empty((X.shape[0]), dtype=int)
+        auxtransf[auxtransfpos] = auxtransfcat
+        newX = np.concatenate((newX,
+                               np.flip(X[auxtransf == 1, :, :, :], 1),
+                               np.flip(X[auxtransf == 2, :, :, :], 2),
+                               np.flip(X[auxtransf == 3, :, :, :], (1,2)),
+                               np.rot90(X[auxtransf == 4, :, :, :], axes=(1,2)),
+                               np.transpose(X[auxtransf == 5, :, :, :], (0, 2, 1, 3)),
+                               np.rot90(X[auxtransf == 6, :, :, :], axes=(2,1))), axis=0)
+        newy = np.concatenate((newy,
+                               y[auxtransf == 1],
+                               y[auxtransf == 2],
+                               y[auxtransf == 3],
+                               y[auxtransf == 4],
+                               y[auxtransf == 5],
+                               y[auxtransf == 6]))
+        if ylr.any(): newylr = np.concatenate((newylr,
+                                               ylr[auxtransf == 1],
+                                               ylr[auxtransf == 2],
+                                               ylr[auxtransf == 3],
+                                               ylr[auxtransf == 4],
+                                               ylr[auxtransf == 5],
+                                               ylr[auxtransf == 6]))
+
+        sids = np.random.choice(newX.shape[0], newX.shape[0], replace=False)
+        newX = newX[sids, :, :, :]
+        newy = newy[sids]
+        if ylr.any(): newylr = newylr[sids]
+
+
+    elif transf == '8T6':
+        newX = X
+        newy = y
+        if ylr.any(): newylr = ylr
+
+        for nl in range(0, 7):
+            auxtransf = np.random.randint(1, 7, X.shape[0])
+            newX = np.concatenate((newX,
+                                   np.flip(X[auxtransf == 1, :, :, :], 1),
+                                   np.flip(X[auxtransf == 2, :, :, :], 2),
+                                   np.flip(X[auxtransf == 3, :, :, :], (1,2)),
+                                   np.rot90(X[auxtransf == 4, :, :, :], axes=(1,2)),
+                                   np.transpose(X[auxtransf == 5, :, :, :], (0, 2, 1, 3)),
+                                   np.rot90(X[auxtransf == 6, :, :, :], axes=(2,1))), axis=0)
+            newy = np.concatenate((newy,
+                                   y[auxtransf == 1],
+                                   y[auxtransf == 2],
+                                   y[auxtransf == 3],
+                                   y[auxtransf == 4],
+                                   y[auxtransf == 5],
+                                   y[auxtransf == 6]))
+            if ylr.any(): newylr = np.concatenate((newylr,
+                                                   ylr[auxtransf == 1],
+                                                   ylr[auxtransf == 2],
+                                                   ylr[auxtransf == 3],
+                                                   ylr[auxtransf == 4],
+                                                   ylr[auxtransf == 5],
+                                                   ylr[auxtransf == 6]))
+
+
+        sids = np.random.choice(newX.shape[0], newX.shape[0], replace=False)
+        newX = newX[sids, :, :, :]
+        newy = newy[sids]
+        if ylr.any(): newylr = newylr[sids]
+
+
+    # elif transf == '2.5R3':
+    #     auxtransf = np.random.randint(1, 4, X.shape[0])
+    #     newX = np.concatenate((X,
+    #                            np.rot90(X[auxtransf == 1, :, :, :], 1, (1,2)),
+    #                            np.rot90(X[auxtransf == 2, :, :, :], 2, (1,2)),
+    #                            np.rot90(X[auxtransf == 3, :, :, :], 3, (1,2))), axis=0)
+    #     newy = np.concatenate((y,
+    #                            y[auxtransf == 1],
+    #                            y[auxtransf == 2],
+    #                            y[auxtransf == 3]))
+    #
+    #     auxtransfpos = np.random.choice(X.shape[0], round(X.shape[0] / 2), replace=False)
+    #     auxtransfcat = np.random.randint(1, 4, round(X.shape[0] / 2))
+    #     auxtransf = np.empty((X.shape[0]), dtype=int)
+    #     auxtransf[auxtransfpos] = auxtransfcat
+    #     newX = np.concatenate((newX,
+    #                            np.rot90(X[auxtransf == 1, :, :, :], 1, (1,2)),
+    #                            np.rot90(X[auxtransf == 2, :, :, :], 2, (1,2)),
+    #                            np.rot90(X[auxtransf == 3, :, :, :], 3, (1,2))), axis=0)
+    #     newy = np.concatenate((newy,
+    #                            y[auxtransf == 1],
+    #                            y[auxtransf == 2],
+    #                            y[auxtransf == 3]))
+    #
+    #     sids = np.random.choice(newX.shape[0], newX.shape[0], replace=False)
+    #     newX = newX[sids, :, :, :]
+    #     newy = newy[sids]
+
+
+    else:
+        newX = X
+        newy = y
+        newylr = ylr
+
+    if ylr.any():
+        return newX, newy, newylr
+    else:
+        return newX, newy

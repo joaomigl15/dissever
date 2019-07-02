@@ -1,7 +1,11 @@
-test.py
-evaluateResults.py
+CorrMatrix/
 Estimates/
 Rasters/
 Results/
 Shapefiles/
 Statistics/
+*.tif
+*.png
+evaluateResults.py
+createDictCParishes.py
+test.py
