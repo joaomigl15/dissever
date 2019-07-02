@@ -1,6 +1,8 @@
 The disseveration algorithm can be executed either through:
-1. runMultipleExperiences.py
-2. runMultipleIndicators.py
+1. runDissever.py
 
 If you prefer to execute pycnophylactic interpolation alone, you can do it through:
 1. runPychophylacticInterpolation.py
+
+If you prefer to execute the dasymetric mapping interpolation alone, you can do it through:
+1. runDasymetricMapping.py
