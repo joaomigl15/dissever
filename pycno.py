@@ -18,6 +18,7 @@ def runPycno(idsdataset, polygonvaluesdataset, rastergeo, niter=100, converge=0.
 
         # Calculate the mean of the cells in the 3 by 3 neighborhood
         mask = np.array([[0,1,0],[1,0,1],[0,1,0]])
+        mask = np.expand_dims(mask, axis=2)
         pycnodataset = ndimage.generic_filter(pycnodataset, np.nanmean, footprint=mask, mode='constant', cval=np.NaN)
 
         # Summarizes the values within each polygon

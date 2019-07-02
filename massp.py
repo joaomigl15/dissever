@@ -14,6 +14,6 @@ def runMassPreserving(idsdataset, polygonvaluesdataset, rastergeo, tempfileid=No
 
     if tempfileid:
         tempfile = 'tempfilemp_' + tempfileid + '.tif'
-        osgu.writeRaster(masspdataset, rastergeo, tempfile)
+        osgu.writeRaster(masspdataset[:, :, 0], rastergeo, tempfile)
 
     return masspdataset, rastergeo

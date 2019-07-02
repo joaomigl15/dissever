@@ -3,7 +3,7 @@ import os
 
 
 indicators = [['LiveBirths18', 'nutsiii', 'municip']]
-ds, rastergeo = osgu.readRaster('Rasters/Normalized/ghs15_200m.tif')
+ds, rastergeo = osgu.readRaster('Rasters/ghs15_200m.tif')
 nrowsds = ds.shape[1]
 ncolsds = ds.shape[0]
 
@@ -14,7 +14,7 @@ for indicator in indicators:
     fshape = os.path.join('Shapefiles', (indicator[2] + '13_cont.shp'))
     fcsv = os.path.join('Statistics', indicator[0], (indicator[2] + '.csv'))
 
-    fancdataset = 'Rasters/Normalized/ghs15_200m.tif'
+    fancdataset = 'Rasters/ghs15_200m.tif'
 
 
     osgu.removeAttrFromShapefile(fshape, ['ID', 'VALUE'])
@@ -26,8 +26,7 @@ for indicator in indicators:
     ancdataset = osgu.readRaster(fancdataset)[0]
     tddataset, rastergeo = dm.rundasymmapping(idsdataset, polygonvaluesdataset, ancdataset, rastergeo, tempfileid=tempfileid)
 
-    tddataset[tddataset < 0] = 0
-    tddataset = tddataset[:,:,0]
-    osgu.writeRaster(tddataset, rastergeo, 'td_' + indicator[0] + '.tif')
+    #tddataset[tddataset < 0] = 0
+    osgu.writeRaster(tddataset[:,:,0], rastergeo, 'td_' + indicator[0] + '.tif')
 
     osgu.removeAttrFromShapefile(fshape, ['ID', 'VALUE'])
