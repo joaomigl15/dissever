@@ -1,8 +1,10 @@
-import osgeoutils as osgu, kerasutils as ku, nputils as npu, pycno, caret
+import osgeoutils as osgu, kerasutils as ku, nputils as npu, gputils as gput
+import pycno, caret
 import numpy as np
+from sklearn import metrics
 
 
-def runDissever(fshape, fshape2e, ancdatasets, ancnames, yraster=None, yrasterlr=None, rastergeo=None,
+def runDissever(fshape, ancdatasets, ancnames, yraster=None, rastergeo=None, perc2evaluate = 0.10,
                 method='lm', cnnmod='unet', patchsize = 7, epochspi=1, batchsize=1024, lrate=0.001, filters=[2,4,8,16,32],
                 lweights=[1/2, 1/2], extdataset=None, p=1, min_iter=3, max_iter=100, converge=2,
                 tempfileid=None, verbose=False):
@@ -11,6 +13,8 @@ def runDissever(fshape, fshape2e, ancdatasets, ancnames, yraster=None, yrasterlr
     nrowsds = ancdatasets[:,:,0].shape[1]
     ncolsds = ancdatasets[:,:,0].shape[0]
     idsdataset = osgu.ogr2raster(fshape, attr='ID', template=[rastergeo, nrowsds, ncolsds])[0]
+
+    if method.startswith('ap'): adjmunicipalities = gput.computeNeighbors(fshape)
 
     if yraster:
         disseverdataset, rastergeo = osgu.readRaster(yraster)
@@ -54,7 +58,24 @@ def runDissever(fshape, fshape2e, ancdatasets, ancnames, yraster=None, yrasterlr
     for k in range(1, max_iter+1):
         if verbose: print('| - Iteration', k)
 
-        if method == 'cnn':
+        previdpolvalues = idpolvalues
+        if method.startswith('ap'):
+            adjpairs = gput.createAdjPairs(adjmunicipalities, perc2evaluate/2)
+            newshape, newpairs = gput.dissolvePairs(fshape, adjpairs)
+            idsdataset = osgu.ogr2raster(newshape, attr='ID', template=[rastergeo, nrowsds, ncolsds])[0]
+            idsdataset2e = osgu.ogr2raster(fshape, attr='ID', template=[rastergeo, nrowsds, ncolsds])[0]
+            osgu.removeShapefile(newshape)
+
+            #Edit idpolvalues
+            pairslist = [item for t in adjpairs for item in t]
+            ids2keep = list(set(previdpolvalues.keys()) - set(pairslist))
+            idpolvalues = dict((k, previdpolvalues[k]) for k in ids2keep)
+            idpolvalues2e = dict((k, previdpolvalues[k]) for k in pairslist)
+            for newpair in newpairs:
+                idpolvalues[newpair] = previdpolvalues[newpairs[newpair][0]] + previdpolvalues[newpairs[newpair][1]]
+
+
+        if method.endswith('cnn'):
             npatches = ancpatches.shape[0]
             nsamples = round(npatches * p)
             idsamples = np.random.choice(npatches, nsamples, replace=False)
@@ -91,7 +112,18 @@ def runDissever(fshape, fshape2e, ancdatasets, ancnames, yraster=None, yrasterlr
 
         if verbose: print('| -- Computing adjustement factor')
         stats = npu.statsByID(disseverdataset, idsdataset, 'sum')
+        if method.startswith('ap'):
+            stats2e = npu.statsByID(disseverdataset, idsdataset2e, 'sum')
+            stats2e = dict((k, stats2e[k]) for k in pairslist)
+
+
+        # Horrible hack, avoid division by 0
+        for s in stats: stats[s] = stats[s] + 0.00001
+
         polygonratios = {k: idpolvalues[k] / stats[k] for k in stats.keys() & idpolvalues}
+        idpolvalues = previdpolvalues
+
+        #osgu.writeRaster(disseverdataset[:,:,0], rastergeo, 'tempfiledisseverwadj_' + '_' + str(k) + 'it.tif')
 
         #print('** Mean of adj. factor', np.array(list(polygonratios.values())).mean())
         for polid in polygonratios:
@@ -99,6 +131,15 @@ def runDissever(fshape, fshape2e, ancdatasets, ancnames, yraster=None, yrasterlr
 
 
         #osgu.writeRaster(disseverdataset[:,:,0], rastergeo, 'tempfiledissever_' + str(lrate) + '_' + str(k) + 'it.tif')
+
+        if method.startswith('ap'):
+            # Compute disaggregation error for 10% of the municipalities
+            actual2e = list(idpolvalues2e.values())
+            predicted2e = list(stats2e.values())
+            range2e = max(actual2e) - min(actual2e)
+            error2e = np.sqrt(metrics.mean_squared_error(actual2e, predicted2e)) / range2e
+            print(error2e)
+
 
         # Check if the algorithm has converged
         error = np.nanmean(abs(disseverdataset-olddisseverdataset))

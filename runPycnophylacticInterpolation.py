@@ -19,8 +19,8 @@ for indicator in indicators:
     osgu.addAttr2Shapefile(fshape, fcsv, [indicator[1].upper(), indicator[2].upper()], encoding='UTF-8')
 
 
-    #tempfileid = None
-    tempfileid = indicator[0]
+    tempfileid = None
+    #tempfileid = indicator[0]
     idsdataset = osgu.ogr2raster(fshape, attr='ID', template=[rastergeo, nrowsds, ncolsds])[0]
     polygonvaluesdataset, rastergeo = osgu.ogr2raster(fshape, attr='VALUE', template=[rastergeo, nrowsds, ncolsds])
     pycnodataset, rastergeo = pycno.runPycno(idsdataset, polygonvaluesdataset, rastergeo, tempfileid=tempfileid)

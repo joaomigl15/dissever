@@ -32,9 +32,10 @@ def addAttr2Shapefile(fshape, fcsv=None, attr=None, encoding='latin-1'):
     prj = [l.strip() for l in open(fshape.replace('.shp', '.prj'), 'r')][0]
     gdf = gpd.read_file(fshape, crs_wkt=prj, encoding=encoding)
     if attr == 'ID':
-        print('|| Adding ID to shapefile', fshape)
-        ids = list(range(1, gdf['geometry'].count() + 1))
-        gdf['ID'] = ids
+        if 'ID' not in gdf:
+            print('|| Adding ID to shapefile', fshape)
+            ids = list(range(1, gdf['geometry'].count() + 1))
+            gdf['ID'] = ids
 
     else:
         print('|| Merging shapefile with csv by', attr)
@@ -60,6 +61,11 @@ def removeAttrFromShapefile(fshape, attr):
         if att in gdfattributes:
             gdf = gdf.drop(att, axis=1)
     gdf.to_file(driver='ESRI Shapefile', filename=fshape, crs_wkt=prj)
+
+
+def removeShapefile(fshape):
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    driver.DeleteDataSource(fshape)
 
 
 def ogr2raster(fshape, attr, template):

@@ -52,6 +52,6 @@ def runPycno(idsdataset, polygonvaluesdataset, rastergeo, niter=100, converge=0.
 
     if tempfileid:
         tempfile = 'tempfilepycno_' + tempfileid + '.tif'
-        osgu.writeRaster(pycnodataset, rastergeo, tempfile)
+        osgu.writeRaster(pycnodataset[:, :, 0], rastergeo, tempfile)
 
     return pycnodataset, rastergeo

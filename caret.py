@@ -26,11 +26,11 @@ def fitxgbtree(X, y):
 def fit(X, y, idsamples, method):
     X = X.reshape((-1, X.shape[2]))[idsamples]
     y = np.ravel(y)[idsamples]
-    if(method == 'lm'):
+    if(method.endswith('lm')):
         return fitlm(~np.isnan(X), ~np.isnan(y))
-    elif(method == 'rf'):
+    elif(method.endswith('rf')):
         return fitrf(~np.isnan(X), ~np.isnan(y))
-    elif(method == 'xgbtree'):
+    elif(method.endswith('xgbtree')):
         return fitxgbtree(~np.isnan(X), ~np.isnan(y))
     else:
         return None
