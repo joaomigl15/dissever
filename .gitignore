@@ -5,6 +5,7 @@ Rasters/
 Results/
 Shapefiles/
 Statistics/
+Temp/
 *.tif
 *.png
 *.csv
