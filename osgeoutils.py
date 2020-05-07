@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter(action = "ignore", category = RuntimeWarning)
+
 import ogr, gdal, osr
 import numpy as np
 import geopandas as gpd, pandas as pd
@@ -42,12 +45,12 @@ def addAttr2Shapefile(fshape, fcsv=None, attr=None, encoding='latin-1'):
         df = pd.read_csv(fcsv, sep=';', encoding=encoding)
 
         gdf[attr[0]] = gdf[attr[0]].str.upper()
-        gdf[attr[1]] = gdf[attr[1]].str.upper()
         df[attr[0]] = df[attr[0]].str.upper()
-        df[attr[1]] = df[attr[1]].str.upper()
-        #print(gdf.columns)
+        if len(attr) > 1:
+            gdf[attr[1]] = gdf[attr[1]].str.upper()
+            df[attr[1]] = df[attr[1]].str.upper()
+
         gdf = gdf.merge(df, left_on=attr, right_on=attr)
-        #print(gdf)
 
     gdf.to_file(driver='ESRI Shapefile', filename=fshape, crs_wkt=prj)
 
@@ -56,6 +59,7 @@ def removeAttrFromShapefile(fshape, attr):
     print('|| Removing attribute(s)', attr, 'from shapefile')
     prj = [l.strip() for l in open(fshape.replace('.shp', '.prj'), 'r')][0]
     gdf = gpd.read_file(fshape, crs_wkt=prj)
+
     gdfattributes = list(gdf)
     for att in attr:
         if att in gdfattributes:
@@ -82,7 +86,7 @@ def ogr2raster(fshape, attr, template):
     cols = template[1]
     rows = template[2]
 
-    tempfile = 'tempfileo2r.tif'
+    tempfile = 'tempfileo2r.tif' + str(os.getpid())
     target_ds = gdal.GetDriverByName('GTiff').Create(tempfile, cols, rows, 1, gdal.GDT_Float32)
 
     target_ds.SetGeoTransform(template[0])

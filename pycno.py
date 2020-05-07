@@ -37,18 +37,13 @@ def runPycno(idsdataset, polygonvaluesdataset, rastergeo, niter=100, converge=0.
         # Check if the algorithm has converged
         error = np.nanmean(abs(pycnodataset - oldpycnodataset))
         rangeds = np.nanmax(oldpycnodataset) - np.nanmin(oldpycnodataset)
-        stopcrit = converge# * rangeds
+        stopcrit = converge # * rangeds
         print('Error:', error)
 
         if ((it > 1) and (error < stopcrit)):
             break
         else:
             oldpycnodataset = pycnodataset
-
-        # if((it > 1) and (np.nanmean(abs(pycnodataset-oldpycnodataset)) < converge)):
-        #     break
-        # else:
-        #     oldpycnodataset = pycnodataset
 
     if tempfileid:
         tempfile = 'tempfilepycno_' + tempfileid + '.tif'

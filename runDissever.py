@@ -1,115 +1,135 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-import osgeoutils as osgu, dissever
+import osgeoutils as osgu
+import dissever
 import numpy as np
-import tensorflow as tf
 import os
 
 from numpy.random import seed
-from tensorflow import set_random_seed
 
 
-indicator = 'LiveBirths18'
-admboundary1 = 'nutsiii'
-admboundary2 = 'municip'
 
+indicator = 'Belgium'
+admboundary2 = 'ADMDISTRIC'
 
-method = ['aplm']
-cnnmodel = ['2runet']
-psamples = [1]
-epochspi = [1]
-batchsize = [1024]
-learningrate = [0.001]
-extendeddataset = [None]
-patchsize = [16]
-filters = [[2,4,8,16,32]]
+method = ['apcnn'] # aplm, apcnn, aplmkeras
+cnnmodel = ['vgg'] # cnnlm, lenet, vgg, unet, 2runet
+psamples = [0.25] # 0.25, 1
+epochspi = [5]
+batchsizearr = [64] # 256, 1024
+learningrate = [0.0001] # 0.01, 0.001, census-0.0001
+extendeddataset = [None] # None, '2.5T6'
+patchsize = [32] # 7, 16, 32
+filters = [[8,16,32,64,512]] # lenet[14,28,56,112,224], vgg[64,128,256,512,4096], vgg[8,16,32,64,512], unet[8,16,32,64,128]
 lossweights = [[0.1, 0.9]]
-percs2evaluate = [0.1, 0.2, 0.3]
+percs2evaluate = [1]
+ymethod = 'lm5it' # massp, pycno, td, lm5it
 
 
-fshape = os.path.join('Shapefiles', (admboundary2 + '13_cont.shp'))
+fshape = os.path.join('Shapefiles', indicator, (admboundary2 + '.shp'))
 fcsv = os.path.join('Statistics', indicator, (admboundary2 + '.csv'))
-yraster = os.path.join('Results', indicator, 'Baselines', ('td_200m' + '.tif'))
+yraster = os.path.join('Results', indicator, 'Baselines', (ymethod + '_200m.tif'))
 
+ancdataset1, rastergeo = osgu.readRaster(os.path.join('Rasters', indicator, 'Normalized', 'ghspg_1975_200m.tif'))
+ancdataset2 = osgu.readRaster(os.path.join('Rasters', indicator, 'Normalized', 'bug_1975_200m.tif'))[0]
+ancdataset3 = osgu.readRaster(os.path.join('Rasters', indicator, 'Normalized', 'lc_1900_200m.tif'))[0]
+ancdataset4 = osgu.readRaster(os.path.join('Rasters', indicator, 'Normalized', 'te_2018_200m.tif'))[0]
+ancdataset5 = osgu.readRaster(os.path.join('Rasters', indicator, 'Normalized', 'hs_2016_200m.tif'))[0]
+ancdataset6 = osgu.readRaster(os.path.join('Rasters', indicator, 'Normalized', 'dfw_1900_200m.tif'))[0]
+ancdataset7 = osgu.readRaster(os.path.join('Rasters', indicator, 'Normalized', 'td_200m.tif'))[0]
 
-ancdataset1, rastergeo = osgu.readRaster('Rasters/Normalized/nl16_200m.tif')
-ancdataset2 = osgu.readRaster('Rasters/Normalized/lc18_200m.tif')[0]
-ancdataset3 = osgu.readRaster('Rasters/Normalized/dfw18_200m.tif')[0]
-ancdataset4 = osgu.readRaster('Rasters/Normalized/dfr15_200m.tif')[0]
-#ancdataset4 = osgu.readRaster('Rasters/Normalized/dfr15.tif')[0]
-#ancdataset5 = osgu.readRaster('Rasters/Normalized/dfw18.tif')[0]
-
-ancdatasets = np.dstack((ancdataset1, ancdataset2, ancdataset3, ancdataset4))
-ancnames = ['NL16', 'LC18', 'DFW18', 'DFR15']
+# ancdatasets = np.dstack((ancdataset1, ancdataset2, ancdataset3, ancdataset4, ancdataset5, ancdataset6))
+ancdatasets = np.dstack((ancdataset1, ancdataset2, ancdataset3, ancdataset4, ancdataset5, ancdataset6, ancdataset7))
 
 
 if not yraster: osgu.removeAttrFromShapefile(fshape, ['ID', 'VALUE'])
-if not yraster: osgu.addAttr2Shapefile(fshape, fcsv, [admboundary1.upper(), admboundary2.upper()])
+# if not yraster: osgu.addAttr2Shapefile(fshape, fcsv, [admboundary1.upper(), admboundary2.upper()])
+if not yraster: osgu.addAttr2Shapefile(fshape, fcsv, admboundary2.upper())
 
 for psamp in psamples:
     for meth in method:
         for p2e in percs2evaluate:
-            if (meth != 'cnn'):
-                print('\n--- Running dissever leveraging a', meth, 'model')
-                seed(42)
-                set_random_seed(42)
+            for batchsize in batchsizearr:
+                for epiter in epochspi:
+                    for lrate in learningrate:
+                        if not meth.endswith('cnn'):
+                            print('\n--- Running dissever leveraging a', meth, 'model')
+                            import tensorflow as tf
 
-                dissdataset, rastergeo, history = dissever.runDissever(fshape, ancdatasets, ancnames=ancnames,
-                                                                       min_iter=49, max_iter=50, perc2evaluate=p2e,
-                                                                       rastergeo=rastergeo, method=meth,
-                                                                       p=psamp,
-                                                                       yraster=yraster,
-                                                                       verbose=True)
+                            seed(42)
+                            tf.random.set_seed(42)
+                            # config = tf.compat.v1.ConfigProto()
+                            # config.gpu_options.allow_growth = True
+                            # session = tf.compat.v1.Session(config=config)
 
-                print('- Writing raster to disk...')
-                niter = len(history)-1
-                osgu.writeRaster(dissdataset, rastergeo,
-                                 'dissever_tdnl_' + str(p2e) + '_'
-                                 + indicator + '_' + meth + '_psamp=' + str(psamp) + '_' + str(niter) + 'iter.tif')
+                            casestudy = 'belgium_pycno_lm_bs' + str(batchsize) + '_p25_100epochspi'
+                            dissdataset, rastergeo, history = dissever.runDissever(fshape, ancdatasets,
+                                                                                   min_iter=49, max_iter=50,
+                                                                                   perc2evaluate=p2e, poly2agg=admboundary2.upper(),
+                                                                                   rastergeo=rastergeo, method=meth,
+                                                                                   batchsize=batchsize,
+                                                                                   epochspi=epiter, lrate=lrate,
+                                                                                   p=psamp,
+                                                                                   yraster=yraster,
+                                                                                   verbose=True)
 
-                print('- Plotting error per iteration...')
-                errorvalues = history[0:niter]
-                plt.plot(list(range(1,niter+1)), errorvalues)
-                plt.title(indicator)
-                plt.ylabel('Error')
-                plt.savefig('errorpi_td16_' + str(p2e) + '_'
-                            + indicator + '_' + meth + '_psamp=' + str(psamp) + '_' + str(niter) + 'iter.png')
-                plt.clf()
+                            print('- Writing raster to disk...')
+                            niter = len(history)-1
+                            osgu.writeRaster(dissdataset, rastergeo,
+                                             'dissever_tdallp_' + str(p2e) + '_'
+                                             + indicator + '_' + meth + '_psamp=' + str(psamp) + '_' + str(niter) + 'iter.tif')
 
-            else:
-                config = tf.ConfigProto()
-                config.gpu_options.allow_growth = True
-                session = tf.Session(config=config)
+                            print('- Plotting error per iteration...')
+                            errorvalues = history[0:niter]
+                            plt.plot(list(range(1,niter+1)), errorvalues)
+                            plt.title(indicator)
+                            plt.ylabel('Error')
+                            plt.savefig('errorpi_tdallp_' + str(p2e)
+                                        + '_' + indicator
+                                        + '_' + meth
+                                        + '_bsize=' + str(batchsize)
+                                        + '_psamp=' + str(psamp) +
+                                        '_' + str(niter) + 'iter.png')
+                            plt.clf()
 
-                for cnnm in cnnmodel:
-                    for lweights in lossweights:
-                        for filt in filters:
-                            for psize in patchsize:
-                                for epiter in epochspi:
-                                    for bsize in batchsize:
-                                        for lrate in learningrate:
+                        else:
+                            for cnnm in cnnmodel:
+                                for lweights in lossweights:
+                                    for filt in filters:
+                                        for psize in patchsize:
                                             for edatas in extendeddataset:
                                                 print('\n--- Running dissever with the following CNN configuration:')
                                                 print('- Method:', cnnm,
                                                       '| Percentage of sampling:', psamp,
                                                       '| Epochs per iteration:', epiter,
-                                                      '| Batch size:', bsize,
+                                                      '| Batch size:', batchsize,
                                                       '| Learning rate:', lrate,
                                                       '| Filters:', filt,
                                                       '| Loss weights:', lweights,
                                                       '| Patch size:', psize,
                                                       '| Extended dataset:', edatas)
 
+                                                import tensorflow as tf
                                                 seed(42)
-                                                set_random_seed(42)
+                                                tf.random.set_seed(42)
+                                                # config = tf.compat.v1.ConfigProto()
+                                                # config.gpu_options.allow_growth = True
+                                                # session = tf.compat.v1.Session(config=config)
 
-                                                dissdataset, rastergeo, history = dissever.runDissever(fshape, ancdatasets, ancnames=ancnames,
-                                                                                                       min_iter=99, max_iter=100,
+                                                casestudy = 'belgium_pycno_' + cnnm + '_bs' + str(batchsize) + \
+                                                            '_lr' + str(lrate) + '_' + str(epiter) + 'epochspi_lm5'
+                                                dissdataset, rastergeo, history = dissever.runDissever(fshape, ancdatasets,
+                                                                                                       min_iter=49, max_iter=50,
+                                                                                                       perc2evaluate=p2e,
+                                                                                                       poly2agg=admboundary2.upper(),
                                                                                                        rastergeo=rastergeo,
-                                                                                                       method='cnn', cnnmod=cnnm,
-                                                                                                       patchsize=psize, batchsize=bsize,
+                                                                                                       method=meth, cnnmod=cnnm,
+                                                                                                       patchsize=psize, batchsize=batchsize,
                                                                                                        epochspi=epiter, lrate=lrate,
                                                                                                        filters=filt, lweights=lweights,
                                                                                                        extdataset=edatas, p=psamp,
@@ -119,9 +139,9 @@ for psamp in psamples:
                                                 print('- Writing raster to disk...')
                                                 niter = len(history)-1
                                                 osgu.writeRaster(dissdataset, rastergeo,
-                                                                 'dissever_td16_' + str(p2e) + '_'
+                                                                 'dissever_' + casestudy + '_'
                                                                  + indicator + '_' + cnnm
-                                                                 + '_bsize=' + str(bsize)
+                                                                 + '_bsize=' + str(batchsize)
                                                                  + '_epiter=' + str(epiter)
                                                                  + '_lrate=' + str(lrate)
                                                                  + '_psamp=' + str(psamp)
@@ -137,9 +157,9 @@ for psamp in psamples:
                                                 plt.plot(list(range(1, niter+1)), lossvalues)
                                                 plt.title(indicator)
                                                 plt.ylabel('Loss')
-                                                plt.savefig('losspit_td16_' + str(p2e) + '_'
+                                                plt.savefig('losspit_tdallp_' + casestudy + '_'
                                                             + indicator + '_' + cnnm
-                                                            + '_bsize=' + str(bsize)
+                                                            + '_bsize=' + str(batchsize)
                                                             + '_epiter=' + str(epiter)
                                                             + '_lrate=' + str(lrate)
                                                             + '_psamp=' + str(psamp)
@@ -156,9 +176,9 @@ for psamp in psamples:
                                                 plt.plot(list(range(1, niter+1)), errorvalues)
                                                 plt.title(indicator)
                                                 plt.ylabel('Error')
-                                                plt.savefig('errorpi_td16_' + str(p2e) + '_'
+                                                plt.savefig('errorpi_tdallp_' + casestudy + '_'
                                                             + indicator + '_' + cnnm
-                                                            + '_bsize=' + str(bsize)
+                                                            + '_bsize=' + str(batchsize)
                                                             + '_epiter=' + str(epiter)
                                                             + '_lrate=' + str(lrate)
                                                             + '_psamp=' + str(psamp)
@@ -168,5 +188,6 @@ for psamp in psamples:
                                                             + '_edat=' + str(edatas)
                                                             + '_' + 'cnn' + '_' + str(niter) + 'iter.png')
                                                 plt.clf()
+
 
 if not yraster: osgu.removeAttrFromShapefile(fshape, ['ID', 'VALUE'])

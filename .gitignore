@@ -1,14 +1,9 @@
-CorrMatrix/
-Estimates/
-PDFs/
-Rasters/
-Results/
-Shapefiles/
-Statistics/
 Temp/
 *.tif
 *.png
 *.csv
+deployment.xml
+evaluate.sh
 evaluateResults.py
 createDictCParishes.py
-test.py
+processEvaluation.py
