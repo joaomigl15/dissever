@@ -13,9 +13,16 @@ def runDissever(fshape, ancdatasets, yraster=None, rastergeo=None, perc2evaluate
                 tempfileid=None, verbose=False):
 
     print('| DISSEVER')
-    casestudy = 'belgium_pycno_' + cnnmod + '_bs' + str(batchsize) + \
-                '_lr' + str(lrate) + '_' + str(epochspi) + 'epochspi_lm5'
-    cstudyad = 'ghspgbuglctehsdfwtd32' if patchsize > 16 else None
+    ymethod = yraster.split('/')[-1].split('_')[0]
+    casestudy = 'belgium_' + ymethod + '_' + str(patchsize) + cnnmod + '_bs' + str(batchsize) + \
+                '_lr' + str(lrate) + '_' + str(epochspi) + 'epochspi_10+10'
+
+    if patchsize == 16:
+        cstudyad = 'ghspgbuglctehsdfwtd16'
+    elif patchsize == 32:
+        cstudyad = 'ghspgbuglctehsdfwtd32'
+    else:
+        cstudyad = None
 
     nrowsds = ancdatasets[:,:,0].shape[1]
     ncolsds = ancdatasets[:,:,0].shape[0]
@@ -49,7 +56,7 @@ def runDissever(fshape, ancdatasets, yraster=None, rastergeo=None, perc2evaluate
         # Create anc variables patches (includes replacing nans by 0, and 0 by nans)
         print('| Creating ancillary variables patches')
         ancdatasets[np.isnan(ancdatasets)] = 0
-        padd = True if cnnmod == 'cnnlm' or cnnmod == 'lenet' or cnnmod == 'vgg' else False
+        padd = True if cnnmod == 'lenet' or cnnmod == 'uenc' or cnnmod == 'vgg' else False
         ancpatches = ku.createpatches(ancdatasets, patchsize, padding=padd, stride=1, cstudy=cstudyad)
         ancdatasets = ancdatasets * ancvarsmask
 
@@ -77,6 +84,9 @@ def runDissever(fshape, ancdatasets, yraster=None, rastergeo=None, perc2evaluate
     history = []
     for k in range(1, max_iter+1):
         print('| - Iteration', k)
+
+        if (k%10) == 0:
+            epochspi = epochspi + 10
 
         previdpolvalues = idpolvalues # Original polygon values
         if method.startswith('ap'):
@@ -140,9 +150,6 @@ def runDissever(fshape, ancdatasets, yraster=None, rastergeo=None, perc2evaluate
         disseverdataset2e = np.copy(disseverdataset)
         ancdatasets = ancdatasets * ancvarsmask
         davg, dsdev = np.nanmean(disseverdataset), np.nanstd(disseverdataset)
-
-        # if (dsdev > 1.5 * davg) and (epochspi < 100):
-        #     epochspi = 2 * epochspi
 
         if verbose: print('| -- Computing adjustement factor')
         stats = npu.statsByID(disseverdataset, idsdataset, 'sum')

@@ -2,7 +2,6 @@ Temp/
 *.tif
 *.png
 *.csv
-deployment.xml
 evaluate.sh
 evaluateResults.py
 createDictCParishes.py

@@ -55,6 +55,29 @@ def compilecnnmodel(cnnmod, shape, lrate, filters=[2,4,8,16,32], lweights=[1/2, 
         mod.add(Dense(units=1, activation='linear', name='predictions'))
         mod.compile(loss='mean_squared_error', optimizer=optimizers.Adam(lr=lrate))
 
+    elif cnnmod == 'uenc':
+        inputs = Input(shape)
+        conv1 = Conv2D(filters[0], 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
+        conv1 = Conv2D(filters[0], 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
+        pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+        conv2 = Conv2D(filters[1], 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool1)
+        conv2 = Conv2D(filters[1], 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv2)
+        pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+        conv3 = Conv2D(filters[2], 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool2)
+        conv3 = Conv2D(filters[2], 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv3)
+        pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+        conv4 = Conv2D(filters[3], 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool3)
+        conv4 = Conv2D(filters[3], 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv4)
+        drop4 = Dropout(0.5)(conv4)
+        pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
+        conv5 = Conv2D(filters[4], 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool4)
+        conv5 = Conv2D(filters[4], 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv5)
+        drop5 = Dropout(0.5)(conv5)
+        flat1 = Flatten()(drop5)
+        dens1 = Dense(units=1, activation='linear', name='predictions')(flat1)
+        mod = Model(inputs=inputs, outputs=dens1)
+        mod.compile(loss='mean_squared_error', optimizer=optimizers.Adam(lr=lrate))
+
     elif cnnmod == 'unet':
         inputs = Input(shape)
         conv1 = Conv2D(filters[0], 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
@@ -161,8 +184,8 @@ def compilecnnmodel(cnnmod, shape, lrate, filters=[2,4,8,16,32], lweights=[1/2, 
 def createpatches(X, patchsize, padding, stride=1, cstudy=None):
     if cstudy:
         try:
-            print('Found .dat file')
             fp = np.memmap(cstudy + '.dat', mode='r')
+            print('Found .dat file')
             ninstances = int(fp.shape[0] / patchsize / patchsize / X.shape[2] / 4) # Divide by dimensions
             shapemmap = (ninstances, patchsize, patchsize, X.shape[2])
             fp = np.memmap(cstudy + '.dat', dtype='float32', mode='r', shape=shapemmap)
