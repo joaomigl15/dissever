@@ -1,23 +1,23 @@
 import osgeoutils as osgu, pycno
+import geopandas as gpd
 import os
 
 
-indicators = [['Belgium', 'ADMDISTRIC', 'ADMDISTRIC']]
-ds, rastergeo = osgu.readRaster('Rasters/Belgium/ghspg_1975_200m.tif')
-nrowsds = ds.shape[1]
-ncolsds = ds.shape[0]
+indicators = [['WithdrawalsWin', 'NUTSIII', 'NUTSIII'], ['WithdrawalsSum', 'NUTSIII', 'NUTSIII']]
+popraster = 'ghspg_2015_200m.tif'
 
 
 for indicator in indicators:
     print('--- Running pycnophylactic interpolation for the indicator', indicator[0])
+    ds, rastergeo = osgu.readRaster(os.path.join('Rasters', indicator[0], popraster))
+    nrowsds = ds.shape[1]
+    ncolsds = ds.shape[0]
 
-    fshape = os.path.join('Shapefiles', indicator[0], (indicator[2] + '.shp'))
+    fshapea = os.path.join('Shapefiles', indicator[0], (indicator[2] + '.shp'))
+    fshape = osgu.copyShape(fshapea, 'pycno')
     fcsv = os.path.join('Statistics', indicator[0], (indicator[2] + '.csv'))
 
-
-    osgu.removeAttrFromShapefile(fshape, ['ID', 'VALUE'])
-    osgu.addAttr2Shapefile(fshape, fcsv, [indicator[2].upper()])
-
+    osgu.addAttr2Shapefile(fshape, fcsv, [indicator[2].upper()], encoding='utf-8')
 
     # tempfileid = None
     tempfileid = indicator[0]
@@ -25,6 +25,6 @@ for indicator in indicators:
     polygonvaluesdataset, rastergeo = osgu.ogr2raster(fshape, attr='VALUE', template=[rastergeo, nrowsds, ncolsds])
     pycnodataset, rastergeo = pycno.runPycno(idsdataset, polygonvaluesdataset, rastergeo, tempfileid=tempfileid)
 
-    osgu.writeRaster(pycnodataset[:, :, 0], rastergeo, 'pycnointerpolation_' + indicator[0] + '.tif')
+    osgu.writeRaster(pycnodataset[:, :, 0], rastergeo, indicator[0] + '_pycnointerpolation.tif')
 
-    osgu.removeAttrFromShapefile(fshape, ['ID', 'VALUE'])
+    osgu.removeShape(fshape)

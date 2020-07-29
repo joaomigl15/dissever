@@ -47,8 +47,8 @@ def createNeigSF(fshape, polyg):
     dissolveddf = newgdf.dissolve(by='ID')
     dissolveddf['ID'] = dissolveddf.index
 
-    prj = [l.strip() for l in open(fshape.replace('.shp', '.prj'), 'r')][0]
-    fshape_dissolved = 'fshape_dissolved_proc-' + str(os.getpid()) + '.shp'
-    dissolveddf.to_file(driver='ESRI Shapefile', filename=fshape_dissolved, crs_wkt=prj)
+    # prj = [l.strip() for l in open(fshape.replace('.shp', '.prj'), 'r')][0]
+    # fshape_dissolved = 'Temp/fshape_dissolved_proc-' + str(os.getpid()) + '.shp'
+    # dissolveddf.to_file(driver='ESRI Shapefile', filename=fshape_dissolved, crs_wkt=prj)
 
     return adjpairs, newpairs

@@ -2,14 +2,15 @@ import os
 from qgis.analysis import QgsZonalStatistics
 
 
-#indicators = [['Britain', 'parish']]
-indicators = [['Belgium', 'MUNICIPALI']]
+#indicators = [['Belgium', 'MUNICIPALI']]
+indicators = [['Foreigners', 'CPARISH'], ['Withdrawals', 'MUNICIP']]
 
 i=1
 for indicator in indicators:
     print('--- Computing statistics for the indicator ' + indicator[0])
 
-    shape_portugal = QgsVectorLayer('/mnt/joao/Pycharm/disseverap_VDF/Shapefiles/Belgium/' + indicator[1] + '.shp', 'zonepolygons', 'ogr')
+    shape_portugal = QgsVectorLayer('/mnt/joao/Pycharm/disseverap_VDF/Shapefiles/' + indicator[0] +
+                                    '/' + indicator[1] + '.shp', 'zonepolygons', 'ogr')
 
     dir_2evaluate = os.path.join('/mnt/joao/Pycharm/disseverap_VDF/Results', indicator[0], '2Evaluate')
     if os.path.isdir(dir_2evaluate):

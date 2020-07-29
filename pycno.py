@@ -1,16 +1,16 @@
 import numpy as np
 from scipy import ndimage
 import massp, osgeoutils as osgu, nputils as npu
+import collections
 
 
 def runPycno(idsdataset, polygonvaluesdataset, rastergeo, niter=100, converge=0.001, tempfileid=None):
     print('| PYCNOPHYLACTIC INTERPOLATION')
-
     pycnodataset = massp.runMassPreserving(idsdataset, polygonvaluesdataset, rastergeo, tempfileid)[0]
     oldpycnodataset = pycnodataset
 
     idpolvalues = npu.polygonValuesByID(polygonvaluesdataset, idsdataset)
-    pycnomask = idsdataset
+    pycnomask = np.copy(idsdataset)
     pycnomask[~np.isnan(pycnomask)] = 1
 
     for it in range(1, niter+1):
@@ -32,7 +32,6 @@ def runPycno(idsdataset, polygonvaluesdataset, rastergeo, niter=100, converge=0.
             pycnodataset[idsdataset == polid] = (pycnodataset[idsdataset == polid] * polygonratios[polid])
 
         pycnodataset = pycnodataset * pycnomask
-
 
         # Check if the algorithm has converged
         error = np.nanmean(abs(pycnodataset - oldpycnodataset))

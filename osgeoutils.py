@@ -3,7 +3,7 @@ warnings.simplefilter(action = "ignore", category = RuntimeWarning)
 
 import ogr, gdal, osr
 import numpy as np
-import geopandas as gpd, pandas as pd
+import geopandas as gpd, pandas as pd, osgeoutils as osgu
 import os
 
 
@@ -31,7 +31,7 @@ def writeRaster(dataset, rastergeo, fraster):
     outband = None
 
 
-def addAttr2Shapefile(fshape, fcsv=None, attr=None, encoding='latin-1'):
+def addAttr2Shapefile(fshape, fcsv=None, attr=None, encoding='latin1'):
     prj = [l.strip() for l in open(fshape.replace('.shp', '.prj'), 'r')][0]
     gdf = gpd.read_file(fshape, crs_wkt=prj, encoding=encoding)
     if attr == 'ID':
@@ -86,7 +86,7 @@ def ogr2raster(fshape, attr, template):
     cols = template[1]
     rows = template[2]
 
-    tempfile = 'tempfileo2r.tif' + str(os.getpid())
+    tempfile = 'tempfileo2r_' + str(os.getpid()) + '.tif'
     target_ds = gdal.GetDriverByName('GTiff').Create(tempfile, cols, rows, 1, gdal.GDT_Float32)
 
     target_ds.SetGeoTransform(template[0])
@@ -108,3 +108,15 @@ def ogr2raster(fshape, attr, template):
     os.remove(tempfile)
 
     return dataset, rastergeo
+
+
+def copyShape(fshapea, meth):
+    fshape = 'Temp/' + fshapea.split('/')[-1].split('.shp')[0] + '_' + meth + '_' + str(os.getpid()) + '.shp'
+    gpd.read_file(fshapea).to_file(fshape, driver='ESRI Shapefile')
+    return fshape
+
+
+def removeShape(fshape):
+    for file in os.listdir('Temp'):
+        if file.startswith(fshape.split('/')[-1].split('.shp')[0]):
+            os.remove('Temp/' + file)

@@ -6,14 +6,15 @@ def runMassPreserving(idsdataset, polygonvaluesdataset, rastergeo, tempfileid=No
     print('|| MASS-PRESERVING AREAL WEIGHTING')
     unique, counts = np.unique(idsdataset[~np.isnan(idsdataset)], return_counts=True)
     counts = dict(zip(unique, counts))
+    countsmp = np.copy(idsdataset)
 
     for polid in counts:
-        idsdataset[idsdataset == polid] = counts[polid]
+        countsmp[countsmp == polid] = counts[polid]
 
-    masspdataset = polygonvaluesdataset/idsdataset
+    masspdataset = polygonvaluesdataset/countsmp
 
     if tempfileid:
-        tempfile = 'tempfilemp_' + tempfileid + '.tif'
+        tempfile = tempfileid + '_tempfilemp.tif'
         osgu.writeRaster(masspdataset[:, :, 0], rastergeo, tempfile)
 
     return masspdataset, rastergeo

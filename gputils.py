@@ -94,7 +94,7 @@ def dissolvePairs(fshape, adjpairs):
     dissolveddf['ID'] = dissolveddf.index
 
     prj = [l.strip() for l in open(fshape.replace('.shp', '.prj'), 'r')][0]
-    fshape_dissolved = 'fshape_dissolved_' + str(os.getpid()) + '.shp'
+    fshape_dissolved = 'Temp/fshape_dissolved_' + str(os.getpid()) + '.shp'
     dissolveddf.to_file(driver='ESRI Shapefile', filename=fshape_dissolved, crs_wkt=prj)
     return fshape_dissolved, newpairs
 

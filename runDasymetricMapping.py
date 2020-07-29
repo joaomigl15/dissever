@@ -2,19 +2,20 @@ import osgeoutils as osgu, dasymmapping as dm
 import os
 
 
-indicators = [['Britain', 'regdistric', 'regdistric']]
-ds, rastergeo = osgu.readRaster('Rasters/Britain/ghs15_t_200m.tif')
-nrowsds = ds.shape[1]
-ncolsds = ds.shape[0]
-
+indicators = [['WithdrawalsSum', 'NUTSIII', 'NUTSIII']]
+popraster = 'ghspg_2015_200m.tif'
 
 for indicator in indicators:
     print('--- Running dasymetric mapping for the indicator', indicator[0])
+    ds, rastergeo = osgu.readRaster(os.path.join('Rasters', indicator[0], popraster))
+    nrowsds = ds.shape[1]
+    ncolsds = ds.shape[0]
 
-    fshape = os.path.join('Shapefiles/Britain', (indicator[2] + '.shp'))
+    fshapea = os.path.join('Shapefiles', indicator[0], (indicator[2] + '.shp'))
+    fshape = osgu.copyShape(fshapea, 'dasymapping')
     fcsv = os.path.join('Statistics', indicator[0], (indicator[2] + '.csv'))
 
-    fancdataset = 'Rasters/Britain/ghs15_t_200m.tif'
+    fancdataset = os.path.join('Rasters', indicator[0], popraster)
 
 
     osgu.removeAttrFromShapefile(fshape, ['ID', 'VALUE'])
@@ -30,4 +31,4 @@ for indicator in indicators:
     #tddataset[tddataset < 0] = 0
     osgu.writeRaster(tddataset[:,:,0], rastergeo, 'td_' + indicator[0] + '.tif')
 
-    osgu.removeAttrFromShapefile(fshape, ['ID', 'VALUE'])
+    osgu.removeShape(fshape)

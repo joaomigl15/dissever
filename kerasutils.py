@@ -2,11 +2,32 @@ import numpy as np
 from sklearn.feature_extraction.image import extract_patches
 from tensorflow.keras.models import *
 from tensorflow.keras.layers import *
+from tensorflow.keras.backend import *
 from tensorflow.keras import optimizers
+from tensorflow.keras.initializers import *
+from tensorflow.keras import activations
 from itertools import product
+
+from tensorflow.keras import backend as K
+import tensorflow as tf
+
+SEED = 42
+
+
+def custom_activation(x):
+    return K.elu(x)
+
+
+def smoothL1(y_true, y_pred):
+    HUBER_DELTA = 0.5
+    x = K.abs(y_true - y_pred)
+    x = tf.where(x < HUBER_DELTA, 0.5 * x ** 2, HUBER_DELTA * (x - 0.5 * HUBER_DELTA))
+    return K.sum(x) - 0.01 * K.std(y_pred)
 
 
 def compilecnnmodel(cnnmod, shape, lrate, filters=[2,4,8,16,32], lweights=[1/2, 1/2]):
+    tf.random.set_seed(SEED)
+
     if cnnmod == 'cnnlm':
         shape = [7]
         mod = Sequential()
@@ -118,7 +139,7 @@ def compilecnnmodel(cnnmod, shape, lrate, filters=[2,4,8,16,32], lweights=[1/2, 
         conv9 = Conv2D(filters[0], 3, activation='relu', padding='same', kernel_initializer='he_normal')(merge9)
         conv9 = Conv2D(filters[0], 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv9)
 
-        #conv9 = Conv2D(2, 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv9)
+        # conv9 = Conv2D(2, 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv9)
         conv10 = Conv2D(1, 1, activation='linear')(conv9)
 
         mod = Model(inputs=inputs, outputs=conv10)
